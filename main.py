@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from  app.database.configuration import engine
+from app.database.configuration import engine
 from app.api.models.tablasSQL import Base
 from app.api.routes.endpoints import rutas
 
@@ -21,9 +21,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
-    
-
-
 )
 
 

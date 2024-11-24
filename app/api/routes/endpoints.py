@@ -8,9 +8,15 @@ from app.api.DTO.dtos import GastoDTOPeticion, GastoDTORespuesta
 from app.api.DTO.dtos import CategoriaDTOPeticion, CategoriaDTORespuesta
 from app.api.DTO.dtos import IngresoDTOPeticion, IngresoDTORespuesta
 from app.api.DTO.dtos import AhorroDTOPeticion, AhorroDTORespuesta
+from app.api.DTO.dtos import LoginCredentials
 
 from app.api.models.tablasSQL import Usuario, Gastos, Categoria, Ingreso, Ahorro
 from app.database.configuration import sessionLocals, engine
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
 
 rutas = APIRouter()
 
@@ -25,22 +31,86 @@ def connectarConBD():
     finally:
         basedatos.close()
 
-# Rutas
+#Define funciones para manejar contraseñas y tokens:
 
-@rutas.post("/usuario", response_model=usuarioDTORespuesta, summary="registrar un usuario en la base de datos")
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+#Verificar el token en endpoints protegidos
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), database: Session = Depends(connectarConBD)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("usuario_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        usuario = database.query(Usuario).filter(Usuario.id == user_id).first()
+        if not usuario:
+            raise HTTPException(status_code=401, detail="Usuario no encontrado")
+        return usuario
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+
+# Configuración de hashing de contraseñas
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Claves para el manejo de JWT
+SECRET_KEY = "Sabu"  # Cambia esto por un valor aleatorio y seguro
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+
+#Endpoint para inicio de sesion
+
+@rutas.post("/login", summary="Iniciar sesión con correo y contraseña")
+def iniciar_sesion(credentials: LoginCredentials, database: Session = Depends(connectarConBD)):
+    usuario = database.query(Usuario).filter(Usuario.strEmail == credentials.email).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not verify_password(credentials.password, usuario.strContraseña):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+    
+    # Crear token de acceso
+    access_token = create_access_token(
+        data={"usuario_id": usuario.id, "email": usuario.strEmail},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@rutas.post("/usuario", response_model=usuarioDTORespuesta, summary="Registrar un usuario")
 def guardarUsuario(datosUsuario: usuarioDTOPeticion, database: Session = Depends(connectarConBD)):
     try:
+        # Verificar si el correo ya está registrado
+        usuario_existente = database.query(Usuario).filter(Usuario.strEmail == datosUsuario.strEmail).first()
+        if usuario_existente:
+            raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+        
         usuario = Usuario(
             strNombre=datosUsuario.strNombre,
             dateFechaNacimiento=datosUsuario.dateFechaNacimiento,
             strUbicacion=datosUsuario.strUbicacion,
-            intMetaAhorro=datosUsuario.intMetaAhorro
+            intMetaAhorro=datosUsuario.intMetaAhorro,
+            strEmail=datosUsuario.strEmail,
+            strContraseña=hash_password(datosUsuario.strContraseña),  # Guardar contraseña hasheada
         )
         database.add(usuario)
         database.commit()
         database.refresh(usuario)
         return usuario
-    
     except Exception as error:
         database.rollback()
         raise HTTPException(status_code=400, detail=f"Tenemos un problema {error}")
@@ -155,3 +225,4 @@ def obtenerAhorros(database: Session = Depends(connectarConBD)):
     except Exception as error:
         database.rollback()
         raise HTTPException(status_code=400, detail=f"Error al obtener los ahorros: {error}")
+    

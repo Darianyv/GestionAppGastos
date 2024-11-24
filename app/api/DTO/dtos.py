@@ -1,13 +1,19 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from datetime import date
 
 #Los DTO son clases que establecen el modelo de transferencia de datos
+
+class LoginCredentials(BaseModel):
+    email: str
+    password: str
 
 class usuarioDTOPeticion(BaseModel):
     strNombre: str
     dateFechaNacimiento: date
     strUbicacion: str
-    intMetaAhorro: int
+    intMetaAhorro: int = Field(..., gt=0)
+    strEmail: EmailStr  # Validación básica para un email correcto
+    strContraseña: str
     
     class Config:
         orm_mode = True
@@ -15,8 +21,6 @@ class usuarioDTOPeticion(BaseModel):
 class usuarioDTORespuesta(BaseModel):
     id: int
     strNombre: str
-    dateFechaNacimiento: date
-    strUbicacion: str
     intMetaAhorro: int
     
     class Config:
@@ -26,7 +30,7 @@ class GastoDTOPeticion(BaseModel):
     strDescripcionGastos: str
     strCategoriaGastos: str
     dateFechaGastos: date
-    intValorGastos: int
+    intValorGastos: int = Field(..., gt=0)
     
     class Config:
         orm_mode = True
@@ -61,7 +65,7 @@ class CategoriaDTORespuesta(BaseModel):
 class IngresoDTOPeticion(BaseModel):
     strDescripcionIngreso: str
     dateFechaIngreso: date
-    intValorIngreso: int
+    intValorIngreso: int = Field(..., gt=0)
     
     class Config:
         orm_mode = True
@@ -78,7 +82,7 @@ class IngresoDTORespuesta(BaseModel):
 class AhorroDTOPeticion(BaseModel):
     strConceptoAhorro: str
     dateFechaAhorro: date
-    intValorAhorro: int
+    intValorAhorro: int = Field(..., gt=0)
     
     class Config:
         orm_mode = True

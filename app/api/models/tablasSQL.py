@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey
 
 from sqlalchemy.orm import relationship 
 
@@ -19,6 +19,8 @@ class Usuario(Base):
     dateFechaNacimiento = Column(Date)
     strUbicacion = Column(String(100))
     intMetaAhorro = Column(Integer)
+    strEmail = Column(String(100), unique=True)
+    strContraseña = Column(String(100))
 
 class Gastos(Base):
     __tablename__='tblGastos'
