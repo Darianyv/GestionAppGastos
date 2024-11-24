@@ -126,30 +126,45 @@ def buscarUsuario(database: Session = Depends(connectarConBD)):
 
 @rutas.post("/gasto", response_model=GastoDTORespuesta, summary="registrar un gasto en la base de datos")
 def guardarGasto(datosGasto: GastoDTOPeticion, database: Session = Depends(connectarConBD)):
+    if datosGasto.intValorGastos <= 0:
+        raise HTTPException(status_code=400, detail="El valor del gasto debe ser mayor a cero.")
+    
     try:
         gasto = Gastos(
             strDescripcionGastos=datosGasto.strDescripcionGastos,
             strCategoriaGastos=datosGasto.strCategoriaGastos,
             dateFechaGastos=datosGasto.dateFechaGastos,
-            intValorGastos=datosGasto.intValorGastos
+            intValorGastos=datosGasto.intValorGastos,
         )
         database.add(gasto)
         database.commit()
         database.refresh(gasto)
         return gasto
-    
     except Exception as error:
         database.rollback()
-        raise HTTPException(status_code=400, detail=f"Tenemos un problema {error}")
+        raise HTTPException(status_code=400, detail=f"Error al registrar el gasto: {error}")
 
-@rutas.get("/gasto", response_model=List[GastoDTORespuesta], summary="buscar todos los gastos en base de datos")
-def buscarGasto(database: Session = Depends(connectarConBD)):
+
+@rutas.get("/gasto", response_model=List[GastoDTORespuesta], summary="Buscar gastos")
+def buscarGasto(
+    offset: int = 0,
+    limit: int = 10,
+    categoria: Optional[str] = None,
+    database: Session = Depends(connectarConBD)
+):
     try:
-        gastos = database.query(Gastos).all()  # Cambiar Usuario por Gastos
+        query = database.query(Gastos)
+        
+        # Filtrar por categoría si se especifica
+        if categoria:
+            query = query.filter(Gastos.strCategoriaGastos == categoria)
+        
+        gastos = query.offset(offset).limit(limit).all()
         return gastos
     except Exception as error:
-        database.rollback()
-        raise HTTPException(status_code=400, detail=f"No se encuentran los gastos {error}")
+        print(f"Error al buscar los gastos: {error}")
+        raise HTTPException(status_code=500, detail="Error interno al buscar los gastos.")
+
 
 @rutas.post("/categoria", response_model=CategoriaDTORespuesta, summary="Registrar una nueva categoría")
 def guardarCategoria(datosCategoria: CategoriaDTOPeticion, database: Session = Depends(connectarConBD)):
