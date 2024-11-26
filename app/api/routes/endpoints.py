@@ -15,7 +15,7 @@ from app.database.configuration import sessionLocals, engine
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 
 
 rutas = APIRouter()
@@ -145,25 +145,14 @@ def guardarGasto(datosGasto: GastoDTOPeticion, database: Session = Depends(conne
         raise HTTPException(status_code=400, detail=f"Error al registrar el gasto: {error}")
 
 
-@rutas.get("/gasto", response_model=List[GastoDTORespuesta], summary="Buscar gastos")
-def buscarGasto(
-    offset: int = 0,
-    limit: int = 10,
-    categoria: Optional[str] = None,
-    database: Session = Depends(connectarConBD)
-):
+@rutas.get("/gasto", response_model=List[GastoDTORespuesta], summary="buscar todos los gastos en base de datos")
+def buscarGasto(database: Session = Depends(connectarConBD)):
     try:
-        query = database.query(Gastos)
-        
-        # Filtrar por categoría si se especifica
-        if categoria:
-            query = query.filter(Gastos.strCategoriaGastos == categoria)
-        
-        gastos = query.offset(offset).limit(limit).all()
+        gastos = database.query(Gastos).all()  # Cambiar Usuario por Gastos
         return gastos
     except Exception as error:
-        print(f"Error al buscar los gastos: {error}")
-        raise HTTPException(status_code=500, detail="Error interno al buscar los gastos.")
+        database.rollback()
+        raise HTTPException(status_code=400, detail=f"No se encuentran los gastos {error}")
 
 
 @rutas.post("/categoria", response_model=CategoriaDTORespuesta, summary="Registrar una nueva categoría")
@@ -193,7 +182,9 @@ def obtenerCategorias(database: Session = Depends(connectarConBD)):
 
 @rutas.post("/ingreso", response_model=IngresoDTORespuesta, summary="Registrar un nuevo ingreso")
 def guardarIngreso(datosIngreso: IngresoDTOPeticion, database: Session = Depends(connectarConBD)):
+    print("Datos recibidos en el backend:", datosIngreso)
     try:
+        # Crea el ingreso
         ingreso = Ingreso(
             strDescripcionIngreso=datosIngreso.strDescripcionIngreso,
             dateFechaIngreso=datosIngreso.dateFechaIngreso,
@@ -205,7 +196,8 @@ def guardarIngreso(datosIngreso: IngresoDTOPeticion, database: Session = Depends
         return ingreso
     except Exception as error:
         database.rollback()
-        raise HTTPException(status_code=400, detail=f"Error al registrar el ingreso: {error}")
+        raise HTTPException(status_code=400, detail=f"Error al registrar el ingreso: {str(error)}")
+
 
 @rutas.get("/ingresos", response_model=List[IngresoDTORespuesta], summary="Obtener todos los ingresos")
 def obtenerIngresos(database: Session = Depends(connectarConBD)):
