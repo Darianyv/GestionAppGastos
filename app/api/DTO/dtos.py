@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, EmailStr
 from datetime import date
 
 #Los DTO son clases que establecen el modelo de transferencia de datos
-
 class LoginCredentials(BaseModel):
     email: str
     password: str
@@ -16,7 +15,7 @@ class usuarioDTOPeticion(BaseModel):
     strContraseña: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class usuarioDTORespuesta(BaseModel):
     id: int
@@ -24,7 +23,7 @@ class usuarioDTORespuesta(BaseModel):
     intMetaAhorro: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class GastoDTOPeticion(BaseModel):
     strDescripcionGastos: str
@@ -33,7 +32,7 @@ class GastoDTOPeticion(BaseModel):
     intValorGastos: int = Field(..., gt=0)
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class GastoDTORespuesta(BaseModel):
     id: int
@@ -43,7 +42,7 @@ class GastoDTORespuesta(BaseModel):
     intValorGastos: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class CategoriaDTOPeticion(BaseModel):
     strNombreCategoria: str
@@ -51,7 +50,7 @@ class CategoriaDTOPeticion(BaseModel):
     strFotoCategoria: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class CategoriaDTORespuesta(BaseModel):
     id: int
@@ -60,7 +59,7 @@ class CategoriaDTORespuesta(BaseModel):
     strFotoCategoria: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class IngresoDTOPeticion(BaseModel):
     strDescripcionIngreso: str
@@ -68,7 +67,7 @@ class IngresoDTOPeticion(BaseModel):
     intValorIngreso: int = Field(..., gt=0)
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class IngresoDTORespuesta(BaseModel):
     id: int
@@ -77,7 +76,7 @@ class IngresoDTORespuesta(BaseModel):
     intValorIngreso: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class AhorroDTOPeticion(BaseModel):
     strConceptoAhorro: str
@@ -85,7 +84,7 @@ class AhorroDTOPeticion(BaseModel):
     intValorAhorro: int = Field(..., gt=0)
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
 
 class AhorroDTORespuesta(BaseModel):
     id: int
@@ -94,4 +93,4 @@ class AhorroDTORespuesta(BaseModel):
     intValorAhorro: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Actualizado para Pydantic V2
